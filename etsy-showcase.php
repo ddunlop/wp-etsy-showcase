@@ -185,15 +185,21 @@ class etsy_showcase {
 	}
 	
 	public function options() {
-		add_options_page(__('Etsy Showcase Options'), __('Etsy Showcase'), 'manage_options', basename(__FILE__), array($this,'options_page'));
+		$page = add_options_page(__('Etsy Showcase Options'), __('Etsy Showcase'), 'manage_options', basename(__FILE__), array($this,'options_page'));
+		add_action("admin_print_scripts-$page", array($this, 'admin_scripts'));
+	}
+	
+	public function admin_scripts() {
+		wp_enqueue_script('etsy-showcase-admin', plugins_url( '', __FILE__) . '/etsy-showcase-admin.js' , array(), '0.1', true);
 	}
 
 	public function admin_init() {
 		register_setting( 'etsy_showcase_options', 'etsy_showcase_options', array($this,'options_validate') );
-		add_settings_section('etsy_showcase', null, array($this, 'options_text'), 'etsy_showcase');
-		add_settings_field('api_key', 'Your Etsy Api Key', array($this,'api_key_input'), 'etsy_showcase', 'etsy_showcase');
-		add_settings_field('api_cache_time', 'How long to cache Etsy API responses for (in seconds)', array($this,'api_cache_time_input'), 'etsy_showcase', 'etsy_showcase');
-		add_settings_field('clear_cache', 'Clear the Cache', array($this, 'clear_cache_input'), 'etsy_showcase', 'etsy_showcase');
+		add_settings_section('api', 'Api Config', array($this, 'options_text'), 'etsy_showcase');
+		add_settings_field('api_key', 'Your Etsy Api Key', array($this,'api_key_input'), 'etsy_showcase', 'api');
+		add_settings_field('api_cache_time', 'How long to cache Etsy API responses for (in seconds)', array($this,'api_cache_time_input'), 'etsy_showcase', 'api');
+		
+		add_settings_field('clear_cache', 'Clear the Cache', array($this, 'clear_cache_input'), 'etsy_showcase', 'api');
 	}
 	
 	public function options_validate($input) {
@@ -208,7 +214,7 @@ class etsy_showcase {
 			add_settings_error('api_cache_time', 'api_cache_time_error', 'The cache time must be an integer', 'error');
 		}
 
-		if('Clear Cache' == $this->arr_get($_POST,'clear')) {
+		if('clear' == $this->arr_get($_POST,'command')) {
 			if($this->clear_cache()) {
 				add_settings_error('clear_cache', 'clear_cache_update', 'The cache has been cleared', 'updated');
 			}
@@ -232,17 +238,21 @@ class etsy_showcase {
 	}
 	
 	public function clear_cache_input() {
-		echo '<input name="clear" type="submit" value="', _e('Clear Cache'), '">';
+		echo '<input name="clear" type="button" value="', _e('Clear Cache'), '">';
 	}
-	
+
 	public function options_page() {
 		echo '<div class="wrap">';
+		
 		echo '<h2>Etsy Showcase Settings</h2>';
-		echo '<form method="post" action="options.php">';
+
+		echo '<form id="etsy-showcase-form" method="post" action="options.php">';
 		settings_fields('etsy_showcase_options');
 		do_settings_sections('etsy_showcase');
-		echo '<p class="submit"><input name="clear" type="submit" value="', _e('Save Changes'), '"></p>';
+		echo '<p class="submit"><input name="s" type="submit" value="', _e('Save Changes'), '"></p>';
+		echo '<input name="command" value="" type="hidden">';
 		echo '</form>';
+		
 		echo '</div>';
 	}
 }
